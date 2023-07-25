@@ -6,7 +6,9 @@ import time
 import pandas as pd
 import numpy as np
 import seaborn as sns
-
+import unicorn as unicorn
+import uvicorn as uvicorn
+from fastapi import FastAPI
 import matplotlib.pyplot as plt
 import time
 from sklearn.preprocessing import StandardScaler
@@ -20,6 +22,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 
+
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
@@ -30,7 +33,11 @@ def calc_prevalence(y_actual):
 
 from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, recall_score
 
+app = FastAPI()
 
+@app.get("/")
+async def root():
+   return {"message": "Hello World"}
 def calc_specificity(y_actual, y_pred, thresh):
     # calculates specificity
     return sum((y_pred < thresh) & (y_actual == 0)) / sum(y_actual == 0)
@@ -359,12 +366,164 @@ def buildTrainTest(df_data):
     X_valid_tf = scaler.transform(X_valid)
     buildModels(X_train_tf, y_train, X_valid_tf, y_valid,df_test)
 
+def testUserVal():
 
+
+    # Given dictionary
+    data = {
+        "encounter_id": 2278392,
+        "patient_nbr": 8222157,
+        "race": "Caucasian",
+        "gender": "Female",
+        "age": "[0-10)",
+        "weight": "?",
+        "admission_type_id": 6,
+        "discharge_disposition_id": 25,
+        "admission_source_id": 1,
+        "time_in_hospital": 1,
+        "payer_code": "?",
+        "medical_specialty": "Pediatrics-Endocrinology",
+        "num_lab_procedures": 41,
+        "num_procedures": 0,
+        "num_medications": 1,
+        "number_outpatient": 0,
+        "number_emergency": 0,
+        "number_inpatient": 0,
+        "diag_1": "250.83",
+        "diag_2": "?",
+        "diag_3": "?",
+        "number_diagnoses": 1,
+        "max_glu_serum": "None",
+        "A1Cresult": "None",
+        "metformin": "No",
+        "repaglinide": "No",
+        "nateglinide": "No",
+        "chlorpropamide": "No",
+        "glimepiride": "No",
+        "acetohexamide": "No",
+        "glipizide": "No",
+        "glyburide": "No",
+        "tolbutamide": "No",
+        "pioglitazone": "No",
+        "rosiglitazone": "No",
+        "acarbose": "No",
+        "miglitol": "No",
+        "troglitazone": "No",
+        "tolazamide": "No",
+        "examide": "No",
+        "citoglipton": "No",
+        "insulin": "No",
+        "glyburide-metformin": "No",
+        "glipizide-metformin": "No",
+        "glimepiride-pioglitazone": "No",
+        "metformin-rosiglitazone": "No",
+        "metformin-pioglitazone": "No",
+        "change": "No",
+        "diabetesMed": "No",
+
+    }
+
+    # Convert dictionary to DataFrame
+    df = pd.DataFrame([data])
+    # if(df.discharge_disposition_id.isin([11, 13, 14, 19, 20, 21])):
+    #     print("Patient has already dead or hospice")
+    # Display the DataFrame
+    print(df)
+    for c in list(df.columns):
+
+        # get a list of unique values
+        n = df[c].unique()
+
+        # if number of unique values is less than 30, print the values. Otherwise print the number of unique values
+        if len(n) < 30:
+            print(c)
+            print(n)
+        else:
+            print(c + ': ' + str(len(n)) + ' unique values')
+    df = df.replace('?', np.nan)
+    cols_num = ['time_in_hospital', 'num_lab_procedures', 'num_procedures', 'num_medications',
+                'number_outpatient', 'number_emergency', 'number_inpatient', 'number_diagnoses']
+    df[cols_num].isnull().sum()
+    print(df[cols_num].isnull().sum())
+    # Categorical Features
+    cols_cat = ['race', 'gender',
+                'max_glu_serum', 'A1Cresult',
+                'metformin', 'repaglinide', 'nateglinide', 'chlorpropamide',
+                'glimepiride', 'acetohexamide', 'glipizide', 'glyburide', 'tolbutamide',
+                'pioglitazone', 'rosiglitazone', 'acarbose', 'miglitol', 'troglitazone',
+                'tolazamide', 'insulin',
+                'glyburide-metformin', 'glipizide-metformin',
+                'glimepiride-pioglitazone', 'metformin-rosiglitazone',
+                'metformin-pioglitazone', 'change', 'diabetesMed', 'payer_code']
+
+    df[cols_cat].isnull().sum()
+    df['race'] = df['race'].fillna('UNK')
+    df['payer_code'] = df['payer_code'].fillna('UNK')
+    df['medical_specialty'] = df['medical_specialty'].fillna('UNK')
+    top_10 = ['UNK', 'InternalMedicine', 'Emergency/Trauma', 'Family/GeneralPractice', 'Cardiology', 'Surgery-General',
+              'Nephrology', 'Orthopedics',
+              'Orthopedics-Reconstructive', 'Radiologist']
+
+    # make a new column with duplicated data
+    df['med_spec'] = df['medical_specialty'].copy()
+
+    # replace all specialties not in top 10 with 'Other' category
+    df.loc[~df.med_spec.isin(top_10), 'med_spec'] = 'Other';
+    df.groupby('med_spec').size()
+    cols_cat_num = ['admission_type_id', 'discharge_disposition_id', 'admission_source_id']
+
+    df[cols_cat_num] = df[cols_cat_num].astype('str')
+    df_cat = pd.get_dummies(df[cols_cat + cols_cat_num + ['med_spec']])
+    df_cat.head()
+    df = pd.concat([df, df_cat], axis=1)
+    print(df)
+    cols_all_cat = list(df_cat.columns)
+    age_id = {'[0-10)': 0,
+              '[10-20)': 10,
+              '[20-30)': 20,
+              '[30-40)': 30,
+              '[40-50)': 40,
+              '[50-60)': 50,
+              '[60-70)': 60,
+              '[70-80)': 70,
+              '[80-90)': 80,
+              '[90-100)': 90}
+    df['age_group'] = df.age.replace(age_id)
+    print(df['age_group'])
+    df.weight.notnull().sum()
+    df['has_weight'] = df.weight.notnull().astype('int')
+    cols_extra = ['age_group', 'has_weight']
+    print('Total number of features:', len(cols_num + cols_all_cat + cols_extra))
+    print('Numerical Features:', len(cols_num))
+    print('Categorical Features:', len(cols_all_cat))
+    print('Extra features:', len(cols_extra))
+    col2use = cols_num + cols_all_cat + cols_extra
+    print('col2use ', col2use)
+    df_data = df[col2use]
+    df_second_array = pd.DataFrame(df_data)
+    cols_original =['time_in_hospital', 'num_lab_procedures', 'num_procedures', 'num_medications', 'number_outpatient', 'number_emergency', 'number_inpatient', 'number_diagnoses', 'race_Asian', 'race_Caucasian', 'race_Hispanic', 'race_Other', 'race_UNK', 'gender_Male', 'gender_Unknown/Invalid', 'max_glu_serum_>300', 'max_glu_serum_Norm', 'A1Cresult_>8', 'A1Cresult_Norm', 'metformin_No', 'metformin_Steady', 'metformin_Up', 'repaglinide_No', 'repaglinide_Steady', 'repaglinide_Up', 'nateglinide_No', 'nateglinide_Steady', 'nateglinide_Up', 'chlorpropamide_No', 'chlorpropamide_Steady', 'chlorpropamide_Up', 'glimepiride_No', 'glimepiride_Steady', 'glimepiride_Up', 'acetohexamide_Steady', 'glipizide_No', 'glipizide_Steady', 'glipizide_Up', 'glyburide_No', 'glyburide_Steady', 'glyburide_Up', 'tolbutamide_Steady', 'pioglitazone_No', 'pioglitazone_Steady', 'pioglitazone_Up', 'rosiglitazone_No', 'rosiglitazone_Steady', 'rosiglitazone_Up', 'acarbose_No', 'acarbose_Steady', 'acarbose_Up', 'miglitol_No', 'miglitol_Steady', 'miglitol_Up', 'troglitazone_Steady', 'tolazamide_Steady', 'tolazamide_Up', 'insulin_No', 'insulin_Steady', 'insulin_Up', 'glyburide-metformin_No', 'glyburide-metformin_Steady', 'glyburide-metformin_Up', 'glipizide-metformin_Steady', 'glimepiride-pioglitazone_Steady', 'metformin-rosiglitazone_Steady', 'metformin-pioglitazone_Steady', 'change_No', 'diabetesMed_Yes', 'payer_code_CH', 'payer_code_CM', 'payer_code_CP', 'payer_code_DM', 'payer_code_FR', 'payer_code_HM', 'payer_code_MC', 'payer_code_MD', 'payer_code_MP', 'payer_code_OG', 'payer_code_OT', 'payer_code_PO', 'payer_code_SI', 'payer_code_SP', 'payer_code_UN', 'payer_code_UNK', 'payer_code_WC', 'admission_type_id_2', 'admission_type_id_3', 'admission_type_id_4', 'admission_type_id_5', 'admission_type_id_6', 'admission_type_id_7', 'admission_type_id_8', 'discharge_disposition_id_10', 'discharge_disposition_id_12', 'discharge_disposition_id_15', 'discharge_disposition_id_16', 'discharge_disposition_id_17', 'discharge_disposition_id_18', 'discharge_disposition_id_2', 'discharge_disposition_id_22', 'discharge_disposition_id_23', 'discharge_disposition_id_24', 'discharge_disposition_id_25', 'discharge_disposition_id_27', 'discharge_disposition_id_28', 'discharge_disposition_id_3', 'discharge_disposition_id_4', 'discharge_disposition_id_5', 'discharge_disposition_id_6', 'discharge_disposition_id_7', 'discharge_disposition_id_8', 'discharge_disposition_id_9', 'admission_source_id_10', 'admission_source_id_11', 'admission_source_id_13', 'admission_source_id_14', 'admission_source_id_17', 'admission_source_id_2', 'admission_source_id_20', 'admission_source_id_22', 'admission_source_id_25', 'admission_source_id_3', 'admission_source_id_4', 'admission_source_id_5', 'admission_source_id_6', 'admission_source_id_7', 'admission_source_id_8', 'admission_source_id_9', 'med_spec_Emergency/Trauma', 'med_spec_Family/GeneralPractice', 'med_spec_InternalMedicine', 'med_spec_Nephrology', 'med_spec_Orthopedics', 'med_spec_Orthopedics-Reconstructive', 'med_spec_Other', 'med_spec_Radiologist', 'med_spec_Surgery-General', 'med_spec_UNK', 'age_group', 'has_weight']
+    df_result = pd.DataFrame(columns=cols_original)
+
+    additional_columns = list(set(cols_original) - set(col2use))
+
+    for col in additional_columns:
+        df_second_array[col] = 0
+    df_result = df_second_array[cols_original]
+    # df_result =df_second_array.reindex(columns=df_result.columns,fill_value=0 )
+    print("df_data_user Data_df_result  ", df_result)
+    # df_result[df_second_array.columns] = df_second_array
+    # Reindex and fill missing values with 0
+
+
+    print("df_data_user Data ", df_data)
+    print("df_data_user Data_df_result  ", df_result)
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     print_hi('PyCharm')
+    testUserVal();
+
     df = pd.read_csv('diabetic_data.csv')
     print(len(df))
     # df.info()
@@ -451,8 +610,11 @@ if __name__ == '__main__':
     print('Categorical Features:', len(cols_all_cat))
     print('Extra features:', len(cols_extra))
     col2use = cols_num + cols_all_cat + cols_extra
+    print('col2use ',col2use)
     df_data = df[col2use + ['OUTPUT_LABEL']]
+    print("df_data ",df_data)
     buildTrainTest(df_data)
+
 
 
 
