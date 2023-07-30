@@ -6,10 +6,7 @@ import time
 import pandas as pd
 import numpy as np
 import seaborn as sns
-import unicorn as unicorn
-import uvicorn as uvicorn
 from fastapi import FastAPI
-import matplotlib.pyplot as plt
 import time
 from sklearn.preprocessing import StandardScaler
 import pickle
@@ -21,6 +18,8 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
+
+from Records import PatientRecord
 
 
 def print_hi(name):
@@ -35,9 +34,17 @@ from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, reca
 
 app = FastAPI()
 
-@app.get("/")
+@app.get("/trainData")
 async def root():
-   return {"message": "Hello World"}
+    val = await trainModels()
+    return val;
+
+#
+@app.post("/evaluate")
+async def callModel(records: PatientRecord):
+    return records
+
+
 def calc_specificity(y_actual, y_pred, thresh):
     # calculates specificity
     return sum((y_pred < thresh) & (y_actual == 0)) / sum(y_actual == 0)
@@ -61,7 +68,7 @@ def print_report(y_actual, y_pred, thresh):
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import make_scorer, roc_auc_score
 
-def buildModels(X_train_tf, y_train, X_valid_tf, y_valid,df_test):
+def buildModels(X_train_tf, y_train, X_valid_tf, y_valid,df_test,col2use):
     thresh = 0.5
     knn = KNeighborsClassifier(n_neighbors=100)
     knn.fit(X_train_tf, y_train)
@@ -314,7 +321,10 @@ def buildModels(X_train_tf, y_train, X_valid_tf, y_valid,df_test):
     print('Test:')
     test_auc, test_accuracy, test_recall, test_precision, test_specificity = print_report(y_test, y_test_preds, thresh)
 
-def buildTrainTest(df_data):
+
+    testUserVal(best_model)
+
+def buildTrainTest(df_data,col2use):
     # shuffle the samples
     df_data = df_data.sample(n=len(df_data), random_state=42)
     df_data = df_data.reset_index(drop=True)
@@ -364,35 +374,35 @@ def buildTrainTest(df_data):
     scaler = pickle.load(open(scalerfile, 'rb'))
     X_train_tf = scaler.transform(X_train)
     X_valid_tf = scaler.transform(X_valid)
-    buildModels(X_train_tf, y_train, X_valid_tf, y_valid,df_test)
+    buildModels(X_train_tf, y_train, X_valid_tf, y_valid,df_test,col2use)
+    return 1;
 
-def testUserVal():
 
-
+def testUserVal(bestModel):
     # Given dictionary
     data = {
-        "encounter_id": 2278392,
-        "patient_nbr": 8222157,
-        "race": "Caucasian",
-        "gender": "Female",
-        "age": "[0-10)",
+        "encounter_id": "36900",
+        "patient_nbr": "77391171",
+        "race": "AfricanAmerican",
+        "gender": "Male",
+        "age": "[60-70)",
         "weight": "?",
-        "admission_type_id": 6,
-        "discharge_disposition_id": 25,
-        "admission_source_id": 1,
-        "time_in_hospital": 1,
+        "admission_type_id": 2,
+        "discharge_disposition_id": 1,
+        "admission_source_id": 4,
+        "time_in_hospital": 7,
         "payer_code": "?",
-        "medical_specialty": "Pediatrics-Endocrinology",
-        "num_lab_procedures": 41,
+        "medical_specialty": "?",
+        "num_lab_procedures": 62,
         "num_procedures": 0,
-        "num_medications": 1,
+        "num_medications": 11,
         "number_outpatient": 0,
         "number_emergency": 0,
         "number_inpatient": 0,
-        "diag_1": "250.83",
-        "diag_2": "?",
-        "diag_3": "?",
-        "number_diagnoses": 1,
+        "diag_1": 157,
+        "diag_2": 288,
+        "diag_3": 197,
+        "number_diagnoses": 7,
         "max_glu_serum": "None",
         "A1Cresult": "None",
         "metformin": "No",
@@ -419,8 +429,7 @@ def testUserVal():
         "metformin-rosiglitazone": "No",
         "metformin-pioglitazone": "No",
         "change": "No",
-        "diabetesMed": "No",
-
+        "diabetesMed": "Yes"
     }
 
     # Convert dictionary to DataFrame
@@ -514,15 +523,17 @@ def testUserVal():
     # df_result[df_second_array.columns] = df_second_array
     # Reindex and fill missing values with 0
 
+    scaler = pickle.load(open('scaler.sav', 'rb'))
+    X_test_tf = scaler.transform(df_result)
+    print(' bestModel.predict(X_test_tf) ', bestModel.predict(X_test_tf))
 
-    print("df_data_user Data ", df_data)
-    print("df_data_user Data_df_result  ", df_result)
 
+    # print("df_data_user Data ", df_data)
+    # print("df_data_user Data_df_result  ", df_result)
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
+def trainModels():
     print_hi('PyCharm')
-    testUserVal();
+    # testUserVal();
 
     df = pd.read_csv('diabetic_data.csv')
     print(len(df))
@@ -530,14 +541,14 @@ if __name__ == '__main__':
     # count the number of rows for each type
     print(df.groupby('readmitted').size())
     df.groupby('discharge_disposition_id').size()
-    #If we look at the IDs_mapping.csv we can see that 11,13,14,19,20,21 are related to death or hospice. We should remove these samples from the predictive model.
+    # If we look at the IDs_mapping.csv we can see that 11,13,14,19,20,21 are related to death or hospice. We should remove these samples from the predictive model.
     df = df.loc[~df.discharge_disposition_id.isin([11, 13, 14, 19, 20, 21])];
 
     # Lets's define an output variable for our binary classification. Here we will try to predict if a patient is likely to be re-admitted within 30 days of discharge.
     df['OUTPUT_LABEL'] = (df.readmitted == '<30').astype('int')
     print("df.head()")
     print(df.head())
-    print('Prevalence:%.3f'%calc_prevalence(df['OUTPUT_LABEL'].values))
+    print('Prevalence:%.3f' % calc_prevalence(df['OUTPUT_LABEL'].values))
     df[list(df.columns)[10:20]].head()
     # for each column
     for c in list(df.columns):
@@ -556,7 +567,7 @@ if __name__ == '__main__':
                 'number_outpatient', 'number_emergency', 'number_inpatient', 'number_diagnoses']
     df[cols_num].isnull().sum()
     print(df[cols_num].isnull().sum())
-    #Categorical Features
+    # Categorical Features
     cols_cat = ['race', 'gender',
                 'max_glu_serum', 'A1Cresult',
                 'metformin', 'repaglinide', 'nateglinide', 'chlorpropamide',
@@ -572,7 +583,7 @@ if __name__ == '__main__':
     df['medical_specialty'] = df['medical_specialty'].fillna('UNK');
     print('Number medical specialty:', df.medical_specialty.nunique())
     df.groupby('medical_specialty').size().sort_values(ascending=False);
-    top_10 = ['UNK', 'InternalMedicine', 'Emergency/Trauma',  'Family/GeneralPractice', 'Cardiology', 'Surgery-General',
+    top_10 = ['UNK', 'InternalMedicine', 'Emergency/Trauma', 'Family/GeneralPractice', 'Cardiology', 'Surgery-General',
               'Nephrology', 'Orthopedics',
               'Orthopedics-Reconstructive', 'Radiologist']
 
@@ -610,10 +621,108 @@ if __name__ == '__main__':
     print('Categorical Features:', len(cols_all_cat))
     print('Extra features:', len(cols_extra))
     col2use = cols_num + cols_all_cat + cols_extra
-    print('col2use ',col2use)
+    print('col2use ', col2use)
     df_data = df[col2use + ['OUTPUT_LABEL']]
-    print("df_data ",df_data)
-    buildTrainTest(df_data)
+    print("df_data ", df_data)
+    buildTrainTest(df_data,col2use)
+
+# Press the green button in the gutter to run the script.
+if __name__ == '__main__':
+    trainModels()
+    # print_hi('PyCharm')
+    # # testUserVal();
+    #
+    # df = pd.read_csv('diabetic_data.csv')
+    # print(len(df))
+    # # df.info()
+    # # count the number of rows for each type
+    # print(df.groupby('readmitted').size())
+    # df.groupby('discharge_disposition_id').size()
+    # #If we look at the IDs_mapping.csv we can see that 11,13,14,19,20,21 are related to death or hospice. We should remove these samples from the predictive model.
+    # df = df.loc[~df.discharge_disposition_id.isin([11, 13, 14, 19, 20, 21])];
+    #
+    # # Lets's define an output variable for our binary classification. Here we will try to predict if a patient is likely to be re-admitted within 30 days of discharge.
+    # df['OUTPUT_LABEL'] = (df.readmitted == '<30').astype('int')
+    # print("df.head()")
+    # print(df.head())
+    # print('Prevalence:%.3f'%calc_prevalence(df['OUTPUT_LABEL'].values))
+    # df[list(df.columns)[10:20]].head()
+    # # for each column
+    # for c in list(df.columns):
+    #
+    #     # get a list of unique values
+    #     n = df[c].unique()
+    #
+    #     # if number of unique values is less than 30, print the values. Otherwise print the number of unique values
+    #     if len(n) < 30:
+    #         print(c)
+    #         print(n)
+    #     else:
+    #         print(c + ': ' + str(len(n)) + ' unique values')
+    # df = df.replace('?', np.nan)
+    # cols_num = ['time_in_hospital', 'num_lab_procedures', 'num_procedures', 'num_medications',
+    #             'number_outpatient', 'number_emergency', 'number_inpatient', 'number_diagnoses']
+    # df[cols_num].isnull().sum()
+    # print(df[cols_num].isnull().sum())
+    # #Categorical Features
+    # cols_cat = ['race', 'gender',
+    #             'max_glu_serum', 'A1Cresult',
+    #             'metformin', 'repaglinide', 'nateglinide', 'chlorpropamide',
+    #             'glimepiride', 'acetohexamide', 'glipizide', 'glyburide', 'tolbutamide',
+    #             'pioglitazone', 'rosiglitazone', 'acarbose', 'miglitol', 'troglitazone',
+    #             'tolazamide', 'insulin',
+    #             'glyburide-metformin', 'glipizide-metformin',
+    #             'glimepiride-pioglitazone', 'metformin-rosiglitazone',
+    #             'metformin-pioglitazone', 'change', 'diabetesMed', 'payer_code']
+    # df[cols_cat].isnull().sum()
+    # df['race'] = df['race'].fillna('UNK')
+    # df['payer_code'] = df['payer_code'].fillna('UNK')
+    # df['medical_specialty'] = df['medical_specialty'].fillna('UNK');
+    # print('Number medical specialty:', df.medical_specialty.nunique())
+    # df.groupby('medical_specialty').size().sort_values(ascending=False);
+    # top_10 = ['UNK', 'InternalMedicine', 'Emergency/Trauma',  'Family/GeneralPractice', 'Cardiology', 'Surgery-General',
+    #           'Nephrology', 'Orthopedics',
+    #           'Orthopedics-Reconstructive', 'Radiologist']
+    #
+    # # make a new column with duplicated data
+    # df['med_spec'] = df['medical_specialty'].copy()
+    #
+    # # replace all specialties not in top 10 with 'Other' category
+    # df.loc[~df.med_spec.isin(top_10), 'med_spec'] = 'Other';
+    # df.groupby('med_spec').size()
+    # cols_cat_num = ['admission_type_id', 'discharge_disposition_id', 'admission_source_id']
+    #
+    # df[cols_cat_num] = df[cols_cat_num].astype('str')
+    # df_cat = pd.get_dummies(df[cols_cat + cols_cat_num + ['med_spec']], drop_first=True)
+    # df_cat.head()
+    # df = pd.concat([df, df_cat], axis=1)
+    # print(df)
+    # cols_all_cat = list(df_cat.columns)
+    # age_id = {'[0-10)': 0,
+    #           '[10-20)': 10,
+    #           '[20-30)': 20,
+    #           '[30-40)': 30,
+    #           '[40-50)': 40,
+    #           '[50-60)': 50,
+    #           '[60-70)': 60,
+    #           '[70-80)': 70,
+    #           '[80-90)': 80,
+    #           '[90-100)': 90}
+    # df['age_group'] = df.age.replace(age_id)
+    # print(df['age_group'])
+    # df.weight.notnull().sum()
+    # df['has_weight'] = df.weight.notnull().astype('int')
+    # cols_extra = ['age_group', 'has_weight']
+    # print('Total number of features:', len(cols_num + cols_all_cat + cols_extra))
+    # print('Numerical Features:', len(cols_num))
+    # print('Categorical Features:', len(cols_all_cat))
+    # print('Extra features:', len(cols_extra))
+    # col2use = cols_num + cols_all_cat + cols_extra
+    # print('col2use ',col2use)
+    # df_data = df[col2use + ['OUTPUT_LABEL']]
+    # print("df_data ",df_data)
+    # buildTrainTest(df_data)
+
 
 
 
