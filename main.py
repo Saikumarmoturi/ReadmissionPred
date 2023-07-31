@@ -20,6 +20,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 
 from Records import PatientRecord
+from SuccessTraining import SuccessTraining
 
 
 def print_hi(name):
@@ -36,7 +37,7 @@ app = FastAPI()
 
 @app.get("/trainData")
 async def root():
-    val = await trainModels()
+    val = trainModels()
     return val;
 
 col2use=[];
@@ -323,7 +324,7 @@ def buildModels(X_train_tf, y_train, X_valid_tf, y_valid,df_test,col2use):
     test_auc, test_accuracy, test_recall, test_precision, test_specificity = print_report(y_test, y_test_preds, thresh)
 
 
-    testUserVal(best_model)
+    # testUserVal(best_model)
 
 def buildTrainTest(df_data,col2use):
     # shuffle the samples
@@ -631,7 +632,7 @@ def trainModels():
     df_data = df[col2use + ['OUTPUT_LABEL']]
     print("df_data ", df_data)
     buildTrainTest(df_data,col2use)
-    return {"Value":"Success FUl"}
+    return {"Result":"Trained Successfully"}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
