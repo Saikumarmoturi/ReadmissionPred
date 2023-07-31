@@ -42,8 +42,8 @@ async def root():
 col2use=[];
 @app.post("/evaluate")
 async def callModel(records: PatientRecord):
-    testUserVal(records)
-    return records
+    # testUserVal(records)
+    return testUserVal(records)
 
 
 def calc_specificity(y_actual, y_pred, thresh):
@@ -530,6 +530,8 @@ def testUserVal(records):
     best_model = pickle.load(open('best_classifier.pkl', 'rb'))
 
     print(' bestModel.predict(X_test_tf) ', best_model.predict(x_test_tf))
+
+    return {"result":str(best_model.predict(x_test_tf)[0])}
 #
 # def setCol2use(col2use):
 #     global.col2use
