@@ -45,7 +45,8 @@ class PatientRecord(BaseModel):
     citoglipton: str
     insulin: str
     metformin: str
-    # glipizide_metformin: str
+    glyburide_metformin :str
+    glipizide_Metformin: str
     glimepiride_pioglitazone: str
     metformin_rosiglitazone: str
     metformin_pioglitazone: str

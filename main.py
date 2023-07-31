@@ -39,9 +39,10 @@ async def root():
     val = await trainModels()
     return val;
 
-#
+col2use=[];
 @app.post("/evaluate")
 async def callModel(records: PatientRecord):
+    testUserVal(records)
     return records
 
 
@@ -375,73 +376,73 @@ def buildTrainTest(df_data,col2use):
     X_train_tf = scaler.transform(X_train)
     X_valid_tf = scaler.transform(X_valid)
     buildModels(X_train_tf, y_train, X_valid_tf, y_valid,df_test,col2use)
-    return 1;
+    # return 1;
 
 
-def testUserVal(bestModel):
-    # Given dictionary
+def testUserVal(records):
     data = {
-        "encounter_id": "36900",
-        "patient_nbr": "77391171",
-        "race": "AfricanAmerican",
-        "gender": "Male",
-        "age": "[60-70)",
-        "weight": "?",
-        "admission_type_id": 2,
-        "discharge_disposition_id": 1,
-        "admission_source_id": 4,
-        "time_in_hospital": 7,
-        "payer_code": "?",
-        "medical_specialty": "?",
-        "num_lab_procedures": 62,
-        "num_procedures": 0,
-        "num_medications": 11,
-        "number_outpatient": 0,
-        "number_emergency": 0,
-        "number_inpatient": 0,
-        "diag_1": 157,
-        "diag_2": 288,
-        "diag_3": 197,
-        "number_diagnoses": 7,
-        "max_glu_serum": "None",
-        "A1Cresult": "None",
-        "metformin": "No",
-        "repaglinide": "No",
-        "nateglinide": "No",
-        "chlorpropamide": "No",
-        "glimepiride": "No",
-        "acetohexamide": "No",
-        "glipizide": "No",
-        "glyburide": "No",
-        "tolbutamide": "No",
-        "pioglitazone": "No",
-        "rosiglitazone": "No",
-        "acarbose": "No",
-        "miglitol": "No",
-        "troglitazone": "No",
-        "tolazamide": "No",
-        "examide": "No",
-        "citoglipton": "No",
-        "insulin": "No",
-        "glyburide-metformin": "No",
-        "glipizide-metformin": "No",
-        "glimepiride-pioglitazone": "No",
-        "metformin-rosiglitazone": "No",
-        "metformin-pioglitazone": "No",
-        "change": "No",
-        "diabetesMed": "Yes"
+        "encounter_id": records.encounter_id,
+        "patient_nbr": records.patient_nbr,
+        "race": records.race,
+        "gender": records.gender,
+        "age": records.age,
+        "weight": records.weight,
+        "admission_type_id": records.admission_type_id,
+        "discharge_disposition_id": records.discharge_disposition_id,
+        "admission_source_id": records.admission_source_id,
+        "time_in_hospital": records.time_in_hospital,
+        "payer_code": records.payer_code,
+        "medical_specialty": records.medical_specialty,
+        "num_lab_procedures": records.num_lab_procedures,
+        "num_procedures": records.num_procedures,
+        "num_medications": records.num_medications,
+        "number_outpatient": records.number_outpatient,
+        "number_emergency": records.number_emergency,
+        "number_inpatient": records.number_inpatient,
+        "diag_1": records.diag_1,
+        "diag_2": records.diag_2,
+        "diag_3": records.diag_3,
+        "number_diagnoses": records.number_diagnoses,
+        "max_glu_serum": records.max_glu_serum,
+        "A1Cresult": records.A1Cresult,
+        "metformin": records.metformin,
+        "repaglinide": records.repaglinide,
+        "nateglinide": records.nateglinide,
+        "chlorpropamide": records.chlorpropamide,
+        "glimepiride": records.glimepiride,
+        "acetohexamide": records.acetohexamide,
+        "glipizide": records.glipizide,
+        "glyburide": records.glyburide,
+        "tolbutamide": records.tolbutamide,
+        "pioglitazone": records.pioglitazone,
+        "rosiglitazone": records.rosiglitazone,
+        "acarbose": records.acarbose,
+        "miglitol": records.miglitol,
+        "troglitazone": records.troglitazone,
+        "tolazamide": records.tolazamide,
+        "examide": records.examide,
+        "citoglipton": records.citoglipton,
+        "insulin": records.insulin,
+        "glyburide-metformin": records.glyburide_metformin,
+        "glipizide-metformin": records.glipizide_Metformin,
+        "glimepiride-pioglitazone": records.glimepiride_pioglitazone,
+        "metformin-rosiglitazone": records.metformin_rosiglitazone,
+        "metformin-pioglitazone": records.metformin_pioglitazone,
+        "change": records.change,
+        "diabetesMed": records.diabetesMed,
+        #     "readmitted": "<30",
     }
-
+    print("data" ,data)
     # Convert dictionary to DataFrame
-    df = pd.DataFrame([data])
+    dfUser = pd.DataFrame([data])
     # if(df.discharge_disposition_id.isin([11, 13, 14, 19, 20, 21])):
     #     print("Patient has already dead or hospice")
     # Display the DataFrame
-    print(df)
-    for c in list(df.columns):
+    print(dfUser)
+    for c in list(dfUser.columns):
 
         # get a list of unique values
-        n = df[c].unique()
+        n = dfUser[c].unique()
 
         # if number of unique values is less than 30, print the values. Otherwise print the number of unique values
         if len(n) < 30:
@@ -449,11 +450,11 @@ def testUserVal(bestModel):
             print(n)
         else:
             print(c + ': ' + str(len(n)) + ' unique values')
-    df = df.replace('?', np.nan)
+    dfUser = dfUser.replace('?', np.nan)
     cols_num = ['time_in_hospital', 'num_lab_procedures', 'num_procedures', 'num_medications',
                 'number_outpatient', 'number_emergency', 'number_inpatient', 'number_diagnoses']
-    df[cols_num].isnull().sum()
-    print(df[cols_num].isnull().sum())
+    dfUser[cols_num].isnull().sum()
+    print(dfUser[cols_num].isnull().sum())
     # Categorical Features
     cols_cat = ['race', 'gender',
                 'max_glu_serum', 'A1Cresult',
@@ -465,27 +466,27 @@ def testUserVal(bestModel):
                 'glimepiride-pioglitazone', 'metformin-rosiglitazone',
                 'metformin-pioglitazone', 'change', 'diabetesMed', 'payer_code']
 
-    df[cols_cat].isnull().sum()
-    df['race'] = df['race'].fillna('UNK')
-    df['payer_code'] = df['payer_code'].fillna('UNK')
-    df['medical_specialty'] = df['medical_specialty'].fillna('UNK')
+    dfUser[cols_cat].isnull().sum()
+    dfUser['race'] = dfUser['race'].fillna('UNK')
+    dfUser['payer_code'] = dfUser['payer_code'].fillna('UNK')
+    dfUser['medical_specialty'] = dfUser['medical_specialty'].fillna('UNK')
     top_10 = ['UNK', 'InternalMedicine', 'Emergency/Trauma', 'Family/GeneralPractice', 'Cardiology', 'Surgery-General',
               'Nephrology', 'Orthopedics',
               'Orthopedics-Reconstructive', 'Radiologist']
 
     # make a new column with duplicated data
-    df['med_spec'] = df['medical_specialty'].copy()
+    dfUser['med_spec'] = dfUser['medical_specialty'].copy()
 
     # replace all specialties not in top 10 with 'Other' category
-    df.loc[~df.med_spec.isin(top_10), 'med_spec'] = 'Other';
-    df.groupby('med_spec').size()
+    dfUser.loc[~dfUser.med_spec.isin(top_10), 'med_spec'] = 'Other';
+    dfUser.groupby('med_spec').size()
     cols_cat_num = ['admission_type_id', 'discharge_disposition_id', 'admission_source_id']
 
-    df[cols_cat_num] = df[cols_cat_num].astype('str')
-    df_cat = pd.get_dummies(df[cols_cat + cols_cat_num + ['med_spec']])
+    dfUser[cols_cat_num] = dfUser[cols_cat_num].astype('str')
+    df_cat = pd.get_dummies(dfUser[cols_cat + cols_cat_num + ['med_spec']])
     df_cat.head()
-    df = pd.concat([df, df_cat], axis=1)
-    print(df)
+    dfUser = pd.concat([dfUser, df_cat], axis=1)
+    print(dfUser)
     cols_all_cat = list(df_cat.columns)
     age_id = {'[0-10)': 0,
               '[10-20)': 10,
@@ -497,24 +498,25 @@ def testUserVal(bestModel):
               '[70-80)': 70,
               '[80-90)': 80,
               '[90-100)': 90}
-    df['age_group'] = df.age.replace(age_id)
-    print(df['age_group'])
-    df.weight.notnull().sum()
-    df['has_weight'] = df.weight.notnull().astype('int')
+    dfUser['age_group'] = dfUser.age.replace(age_id)
+    print(dfUser['age_group'])
+    dfUser.weight.notnull().sum()
+    dfUser['has_weight'] = dfUser.weight.notnull().astype('int')
     cols_extra = ['age_group', 'has_weight']
     print('Total number of features:', len(cols_num + cols_all_cat + cols_extra))
     print('Numerical Features:', len(cols_num))
     print('Categorical Features:', len(cols_all_cat))
     print('Extra features:', len(cols_extra))
-    col2use = cols_num + cols_all_cat + cols_extra
-    print('col2use ', col2use)
-    df_data = df[col2use]
+    col2use1 = cols_num + cols_all_cat + cols_extra
+    print('col2use ', col2use1)
+    df_data = dfUser[col2use1]
     df_second_array = pd.DataFrame(df_data)
-    cols_original =['time_in_hospital', 'num_lab_procedures', 'num_procedures', 'num_medications', 'number_outpatient', 'number_emergency', 'number_inpatient', 'number_diagnoses', 'race_Asian', 'race_Caucasian', 'race_Hispanic', 'race_Other', 'race_UNK', 'gender_Male', 'gender_Unknown/Invalid', 'max_glu_serum_>300', 'max_glu_serum_Norm', 'A1Cresult_>8', 'A1Cresult_Norm', 'metformin_No', 'metformin_Steady', 'metformin_Up', 'repaglinide_No', 'repaglinide_Steady', 'repaglinide_Up', 'nateglinide_No', 'nateglinide_Steady', 'nateglinide_Up', 'chlorpropamide_No', 'chlorpropamide_Steady', 'chlorpropamide_Up', 'glimepiride_No', 'glimepiride_Steady', 'glimepiride_Up', 'acetohexamide_Steady', 'glipizide_No', 'glipizide_Steady', 'glipizide_Up', 'glyburide_No', 'glyburide_Steady', 'glyburide_Up', 'tolbutamide_Steady', 'pioglitazone_No', 'pioglitazone_Steady', 'pioglitazone_Up', 'rosiglitazone_No', 'rosiglitazone_Steady', 'rosiglitazone_Up', 'acarbose_No', 'acarbose_Steady', 'acarbose_Up', 'miglitol_No', 'miglitol_Steady', 'miglitol_Up', 'troglitazone_Steady', 'tolazamide_Steady', 'tolazamide_Up', 'insulin_No', 'insulin_Steady', 'insulin_Up', 'glyburide-metformin_No', 'glyburide-metformin_Steady', 'glyburide-metformin_Up', 'glipizide-metformin_Steady', 'glimepiride-pioglitazone_Steady', 'metformin-rosiglitazone_Steady', 'metformin-pioglitazone_Steady', 'change_No', 'diabetesMed_Yes', 'payer_code_CH', 'payer_code_CM', 'payer_code_CP', 'payer_code_DM', 'payer_code_FR', 'payer_code_HM', 'payer_code_MC', 'payer_code_MD', 'payer_code_MP', 'payer_code_OG', 'payer_code_OT', 'payer_code_PO', 'payer_code_SI', 'payer_code_SP', 'payer_code_UN', 'payer_code_UNK', 'payer_code_WC', 'admission_type_id_2', 'admission_type_id_3', 'admission_type_id_4', 'admission_type_id_5', 'admission_type_id_6', 'admission_type_id_7', 'admission_type_id_8', 'discharge_disposition_id_10', 'discharge_disposition_id_12', 'discharge_disposition_id_15', 'discharge_disposition_id_16', 'discharge_disposition_id_17', 'discharge_disposition_id_18', 'discharge_disposition_id_2', 'discharge_disposition_id_22', 'discharge_disposition_id_23', 'discharge_disposition_id_24', 'discharge_disposition_id_25', 'discharge_disposition_id_27', 'discharge_disposition_id_28', 'discharge_disposition_id_3', 'discharge_disposition_id_4', 'discharge_disposition_id_5', 'discharge_disposition_id_6', 'discharge_disposition_id_7', 'discharge_disposition_id_8', 'discharge_disposition_id_9', 'admission_source_id_10', 'admission_source_id_11', 'admission_source_id_13', 'admission_source_id_14', 'admission_source_id_17', 'admission_source_id_2', 'admission_source_id_20', 'admission_source_id_22', 'admission_source_id_25', 'admission_source_id_3', 'admission_source_id_4', 'admission_source_id_5', 'admission_source_id_6', 'admission_source_id_7', 'admission_source_id_8', 'admission_source_id_9', 'med_spec_Emergency/Trauma', 'med_spec_Family/GeneralPractice', 'med_spec_InternalMedicine', 'med_spec_Nephrology', 'med_spec_Orthopedics', 'med_spec_Orthopedics-Reconstructive', 'med_spec_Other', 'med_spec_Radiologist', 'med_spec_Surgery-General', 'med_spec_UNK', 'age_group', 'has_weight']
-    df_result = pd.DataFrame(columns=cols_original)
-
-    additional_columns = list(set(cols_original) - set(col2use))
-
+    cols_original = col2use
+    # cols_original = global.col2use
+    df_result = pd.DataFrame(columns=col2use1)
+    print("cols ",col2use)
+    additional_columns = list(set(cols_original) - set(col2use1))
+    print("additional_columns ", additional_columns)
     for col in additional_columns:
         df_second_array[col] = 0
     df_result = df_second_array[cols_original]
@@ -524,13 +526,13 @@ def testUserVal(bestModel):
     # Reindex and fill missing values with 0
 
     scaler = pickle.load(open('scaler.sav', 'rb'))
-    X_test_tf = scaler.transform(df_result)
-    print(' bestModel.predict(X_test_tf) ', bestModel.predict(X_test_tf))
+    x_test_tf = scaler.transform(df_result)
+    best_model = pickle.load(open('best_classifier.pkl', 'rb'))
 
-
-    # print("df_data_user Data ", df_data)
-    # print("df_data_user Data_df_result  ", df_result)
-
+    print(' bestModel.predict(X_test_tf) ', best_model.predict(x_test_tf))
+#
+# def setCol2use(col2use):
+#     global.col2use
 def trainModels():
     print_hi('PyCharm')
     # testUserVal();
@@ -620,11 +622,14 @@ def trainModels():
     print('Numerical Features:', len(cols_num))
     print('Categorical Features:', len(cols_all_cat))
     print('Extra features:', len(cols_extra))
+    global col2use;
     col2use = cols_num + cols_all_cat + cols_extra
+    # setCol2use(col2use)
     print('col2use ', col2use)
     df_data = df[col2use + ['OUTPUT_LABEL']]
     print("df_data ", df_data)
     buildTrainTest(df_data,col2use)
+    return {"Value":"Success FUl"}
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
