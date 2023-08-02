@@ -1,0 +1,54 @@
+{
+	"info": {
+		"_postman_id": "d2bcd657-6b95-4d0c-b123-f2530acfa3cd",
+		"name": "Patient Readmission",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "28916117"
+	},
+	"item": [
+		{
+			"name": "Train Data",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000 /trainData",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000 ",
+					"path": [
+						"trainData"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Evaluate",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000 /trainData",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000 ",
+					"path": [
+						"trainData"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
